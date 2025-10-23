@@ -4,8 +4,7 @@ fonttools==4.60.1
 joblib==1.5.2
 kiwisolver==1.4.9
 matplotlib==3.10.7
-mysql==0.0.3
-mysqlclient==2.2.7
+mysql-connector-python
 numpy==2.3.4
 packaging==25.0
 pandas==2.3.3

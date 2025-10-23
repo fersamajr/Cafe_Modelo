@@ -5,7 +5,10 @@ import seaborn as sns
 import numpy as np
 import mysql.connector
 import datetime
-from joblib import load
+import joblib
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
 
 # ========= MODELO Y DATOS DE PREDICCIÓN =========
 modelo = load('modelo_cafe_pipeline.pkl')

@@ -5,7 +5,7 @@ import seaborn as sns
 import numpy as np
 import mysql.connector
 import datetime
-from joblib import load
+
 
 # ========= MODELO Y DATOS DE PREDICCIÓN =========
 modelo = load('modelo_cafe_pipeline.pkl')

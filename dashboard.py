@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 
 # ========= MODELO Y DATOS DE PREDICCIÓN =========
-modelo = load('modelo_cafe_pipeline.pkl')
+###Modelo = load('modelo_cafe_pipeline.pkl')
 df_pred = pd.read_excel('predicciones_365_dias.xlsx')
 df_pred['Fecha'] = pd.to_datetime(df_pred['Fecha'])  # ← Esta línea es clave
 

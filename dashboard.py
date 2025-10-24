@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import mysql.connector
+import openpyxl
 import datetime
 import joblib
 from sklearn.pipeline import Pipeline

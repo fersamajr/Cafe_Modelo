@@ -18,10 +18,12 @@ df_pred['Fecha'] = pd.to_datetime(df_pred['Fecha'])  # ← Esta línea es clave
 # ================= SQL pedidos reales ==================
 def obtener_pedidos_reales():
     conn = mysql.connector.connect(
-        host="localhost",
+        host="10.73.133.240",
         user="root",
         password="Fp$c0105",
-        database="Cafe"
+        database="Cafe",
+        port=3306
+        
     )
     query = "SELECT fecha, valor FROM pedidos ORDER BY fecha"
     df = pd.read_sql(query, conn)
@@ -31,10 +33,11 @@ def obtener_pedidos_reales():
 # ================= SQL inventario ==================
 def obtener_inventario():
     conn = mysql.connector.connect(
-        host="localhost",
+        host="10.73.133.240",
         user="root",
         password="Fp$c0105",
-        database="Cafe"
+        database="Cafe",
+        port=3306
     )
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM inventario WHERE producto='cafe' ORDER BY fecha_actualizacion DESC LIMIT 1")
@@ -44,10 +47,11 @@ def obtener_inventario():
 
 def actualizar_inventario(nueva_cantidad):
     conn = mysql.connector.connect(
-        host="localhost",
+        host="10.73.133.240",
         user="root",
         password="Fp$c0105",
-        database="Cafe"
+        database="Cafe",
+        port=3306
     )
     cursor = conn.cursor()
     cursor.execute("UPDATE inventario SET cantidad_kg=%s, fecha_actualizacion=NOW() WHERE producto='cafe'", (nueva_cantidad,))

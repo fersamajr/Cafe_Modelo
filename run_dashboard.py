@@ -10,7 +10,7 @@ def install_requirements():
 
 def run_dashboard():
     # Opcional: Cambia dashboard.py por el nombre de tu archivo principal
-    subprocess.run(["streamlit", "run", "dashboard.py"])
+    subprocess.run(["streamlit", "run", "test_dashboard.py"]) 
 
 if __name__ == "__main__":
     install_requirements()

@@ -30,4 +30,4 @@ streamlit
 
 # Manejo de variables de entorno
 python-dotenv
-python-dotenv
+

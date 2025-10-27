@@ -4,200 +4,180 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import mysql.connector
+from mysql.connector import Error
+from dotenv import load_dotenv
 import openpyxl
 import datetime
-import joblib
-from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
+import os
 
-# ========= MODELO Y DATOS DE PREDICCIÓN =========
-df_pred = pd.read_excel('predicciones_365_dias.xlsx')
-df_pred['Fecha'] = pd.to_datetime(df_pred['Fecha'])  # ← Esta línea es clave
+# ============== SEGURIDAD: variables de entorno ==============
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path)
 
-# ================= SQL pedidos reales ==================
+PALETA_CAFE = ["#8B5B29", "#FFD39B", "#FFE4C4"]
+
+# ================= FUNCIONES SQL SEGURAS =====================
+def get_connection():
+    try:
+        return mysql.connector.connect(
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            database=os.getenv("DB_DATABASE"),
+            port=int(os.getenv("DB_PORT"))
+        )
+    except Error as e:
+        st.error(f"❌ Error al conectar con la base de datos: {e}")
+        return None
+
 def obtener_pedidos_reales():
-    conn = mysql.connector.connect(
-        host="10.73.133.240",
-        user="root",
-        password="Fp$c0105",
-        database="Cafe",
-        port=3306
-        
-    )
-    query = "SELECT fecha, valor FROM pedidos ORDER BY fecha"
-    df = pd.read_sql(query, conn)
-    conn.close()
-    return df
+    conn = get_connection()
+    if conn:
+        try:
+            query = "SELECT fecha, valor FROM pedidos ORDER BY fecha;"
+            df = pd.read_sql(query, conn)
+            conn.close()
+            df['fecha'] = pd.to_datetime(df['fecha'], dayfirst=True)
+            return df
+        except Error as e:
+            st.error(f"⚠️ Error al obtener pedidos: {e}")
+    return pd.DataFrame(columns=["fecha", "valor"])
 
-# ================= SQL inventario ==================
 def obtener_inventario():
-    conn = mysql.connector.connect(
-        host="10.73.133.240",
-        user="root",
-        password="Fp$c0105",
-        database="Cafe",
-        port=3306
-    )
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM inventario WHERE producto='cafe' ORDER BY fecha_actualizacion DESC LIMIT 1")
-    row = cursor.fetchone()
-    conn.close()
-    return row
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM inventario WHERE producto='cafe' ORDER BY fecha_actualizacion DESC LIMIT 1;")
+            row = cursor.fetchone()
+            conn.close()
+            return row
+        except Error as e:
+            st.error(f"⚠️ Error al consultar inventario: {e}")
+    return None
 
 def actualizar_inventario(nueva_cantidad):
-    conn = mysql.connector.connect(
-        host="10.73.133.240",
-        user="root",
-        password="Fp$c0105",
-        database="Cafe",
-        port=3306
-    )
-    cursor = conn.cursor()
-    cursor.execute("UPDATE inventario SET cantidad_kg=%s, fecha_actualizacion=NOW() WHERE producto='cafe'", (nueva_cantidad,))
-    conn.commit()
-    conn.close()
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE inventario SET cantidad_kg=%s, fecha_actualizacion=NOW() WHERE producto='cafe';", (nueva_cantidad,))
+            conn.commit()
+            conn.close()
+            st.sidebar.success("✅ Inventario actualizado correctamente.")
+        except Error as e:
+            st.sidebar.error(f"❌ Fallo al actualizar inventario: {e}")
 
-# ========= UNIR DATOS y PALETA =========
-PALETA_CAFE = ["#8B5B29", "#FFD39B", "#FFE4C4"]  # Predicción, Real, fondo
+# ================= CARGA SEGURA DE PREDICCIONES ===================
+df_pred = pd.read_excel("predicciones_365_dias.xlsx")
+# Asegura formato correcto y días primarios (verifica si es %d/%m/%Y)
+df_pred['Fecha'] = pd.to_datetime(df_pred['Fecha'], dayfirst=True)
 
 pedidos_reales = obtener_pedidos_reales()
-pedidos_reales['fecha'] = pd.to_datetime(pedidos_reales['fecha'])
 
+# ============== UNIFICACIÓN DE DATAFRAMES =============
 df_merged = pd.merge(
-    df_pred.rename(columns={'Fecha':'fecha', 'Kg_Predichos':'kg_predicho'}),
-    pedidos_reales.rename(columns={'valor':'kg_real'}),
-    on='fecha', how='left'
+    df_pred.rename(columns={'Fecha': 'fecha', 'Kg_Predichos': 'kg_predicho'}),
+    pedidos_reales.rename(columns={'valor': 'kg_real'}) if not pedidos_reales.empty else pedidos_reales,
+    on='fecha',
+    how='left'
 )
 
-# ============ DASHBOARD =====================
-st.title("Dashboard Predicción Café")
+# ============ STREAMLIT DASHBOARD ============
+st.title("📊 Dashboard Predicción Café")
 
 inventario_reg = obtener_inventario()
 inventario_actual = inventario_reg['cantidad_kg'] if inventario_reg else 40.0
 
-# =========== TABLAS Y GRÁFICOS PRINCIPALES ===========
-tab1, tab2, tab3, tab4, tab5= st.tabs(["Tabla", "Hist. Predichos", "Heatmap Predichos", "Comparativa Real vs Predicción","Comparar dos rangos de fechas"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Tabla", "Hist. Predichos", "Heatmap", "Comparativa", "Simulación"])
 
 max_dias = len(df_merged)
-dias_mostrar = st.slider('Cantidad de predicciones a visualizar:', min_value=1, max_value=max_dias, value=30)
-df_vista = df_merged.head(dias_mostrar)
+dias_mostrar = st.slider("Cantidad de predicciones a visualizar:", 1, max_dias, 30)
+df_vista = df_merged.head(dias_mostrar).copy()  # Evita el warning de SettingWithCopy
 
-# --- Tab1: Predicciones completas ---
+# --- TAB 1: TABLA ---
 with tab1:
     st.subheader("Predicciones y pedidos reales")
     st.dataframe(df_vista[['fecha', 'kg_predicho', 'kg_real']])
 
-# --- Tab2: Histograma predichos ---
+# --- TAB 2: HISTOGRAMA ---
 with tab2:
     st.subheader("Histograma de Kg Predichos")
     fig, ax = plt.subplots()
-    ax.hist(df_vista['kg_predicho'].dropna(), bins=10, color=PALETA_CAFE[1], edgecolor=PALETA_CAFE[0])
+    ax.hist(df_vista['kg_predicho'].dropna().astype(float), bins=10, color=PALETA_CAFE[1], edgecolor=PALETA_CAFE[0])
     st.pyplot(fig)
 
-# --- Tab3: Heatmap predichos ---
+# --- TAB 3: HEATMAP ---
 with tab3:
-    st.subheader("Heatmap Día vs Mes (Kg Predichos)")
+    st.subheader("Heatmap Día vs Mes")
     df_vista['Mes'] = df_vista['fecha'].dt.strftime('%b')
-    df_vista['DiaSemana'] = df_vista['fecha'].dt.strftime('%A')
-    tabla = pd.pivot_table(df_vista, values='kg_predicho', index='DiaSemana', columns='Mes', aggfunc='sum')
+    df_vista['Día'] = df_vista['fecha'].dt.strftime('%A')
+    tabla = pd.pivot_table(df_vista, values='kg_predicho', index='Día', columns='Mes', aggfunc='sum')
     fig2, ax2 = plt.subplots()
-    sns.heatmap(tabla, cmap="YlOrBr", annot=True, fmt='.1f', ax=ax2)
+    sns.heatmap(tabla, cmap="YlOrBr", annot=True, fmt=".1f", ax=ax2)
     st.pyplot(fig2)
 
-# --- Tab4: Gráfica comparativa real vs predicción ---
+# --- TAB 4: COMPARATIVA ---
 with tab4:
-    st.subheader("Consumo Real vs Predicción (Paleta tonos café)")
+    st.subheader("Consumo Real vs Predicción")
+    # Asegura columnas numéricas y sin NaN
+    mask = df_merged['kg_predicho'].notnull() & df_merged['kg_real'].notnull()
+    df_plot = df_merged[mask].copy()
+    df_plot['kg_predicho'] = df_plot['kg_predicho'].astype(float)
+    df_plot['kg_real'] = df_plot['kg_real'].astype(float)
+
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(df_merged['fecha'], df_merged['kg_predicho'], label='Predicción', color=PALETA_CAFE[0], linewidth=2)
-    ax.plot(df_merged['fecha'], df_merged['kg_real'], label='Real', color=PALETA_CAFE[1], linestyle='--', linewidth=2)
-    ax.fill_between(df_merged['fecha'], df_merged['kg_predicho'], df_merged['kg_real'], color=PALETA_CAFE[2], alpha=0.3)
-    ax.set_xlabel('Fecha')
-    ax.set_ylabel('Kg')
+    ax.plot(df_plot['fecha'], df_plot['kg_predicho'], label="Predicción", color=PALETA_CAFE[0], linewidth=2)
+    ax.plot(df_plot['fecha'], df_plot['kg_real'], label="Real", color=PALETA_CAFE[1], linestyle="--", linewidth=2)
+    ax.fill_between(df_plot['fecha'], df_plot['kg_predicho'], df_plot['kg_real'], color=PALETA_CAFE[2], alpha=0.3)
     ax.legend()
     st.pyplot(fig)
 
-# --- Tab5:  Comparar dos rangos de fechas ---
+# --- TAB 5: SIMULACIÓN ---
 with tab5:
-    st.header("Simula el consumo necesario hasta una fecha objetivo")
-
-    df_pred['Fecha'] = pd.to_datetime(df_pred['Fecha'])
+    st.header("📅 Simula el consumo hasta una fecha")
     fecha_min, fecha_max = df_pred['Fecha'].min().date(), df_pred['Fecha'].max().date()
     hoy = datetime.date.today()
-    # ...
-    if hoy not in set(df_pred['Fecha'].dt.date):
-        fecha_inicio = hoy
-    else:
-        fecha_inicio = hoy
-    # ...
+    fecha_inicio = hoy
+    fecha_final = st.date_input("Selecciona la fecha límite", value=hoy + datetime.timedelta(weeks=4),
+                                min_value=fecha_inicio, max_value=fecha_max)
 
-
-    # Entrada para la fecha final objetivo (default 4 semanas desde hoy, ajustable)
-    fecha_final = st.date_input(
-        "Selecciona la fecha límite de tu simulación",
-        value=(fecha_inicio + datetime.timedelta(weeks=4)),
-        min_value=fecha_inicio,
-        max_value=fecha_max
-    )
-
-    # Filtro de pedidos entre HOY y la fecha elegida (incluye hoy, excluye final)
-    mask = (df_pred['Fecha'].dt.date >= fecha_inicio) & (df_pred['Fecha'].dt.date <= fecha_final)
-    consumo_periodo = df_pred.loc[mask, 'Kg_Predichos'].sum()
-
-    inventario_reg = obtener_inventario()
-    inventario_actual = inventario_reg['cantidad_kg'] if inventario_reg else 40.0
+    mask_pred = (df_pred['Fecha'].dt.date >= fecha_inicio) & (df_pred['Fecha'].dt.date <= fecha_final)
+    consumo_periodo = df_pred.loc[mask_pred, 'Kg_Predichos'].astype(float).sum()
     compra_necesaria = max(0, consumo_periodo - inventario_actual)
 
-    st.markdown(
-        f"""<b>Tu periodo:</b> {fecha_inicio.strftime('%d/%m/%Y')} → {fecha_final.strftime('%d/%m/%Y')}  
-        <br>Consumo estimado: <b>{consumo_periodo:.1f} kg</b>  
-        <br>Inventario actual: <b>{inventario_actual:.1f} kg</b>  
-        <br><b>Kilos que necesitas comprar:</b> <span style='color:orange'>{compra_necesaria:.1f} kg</span>""",
-        unsafe_allow_html=True
-    )
+    st.markdown(f"""
+    **Periodo:** {fecha_inicio.strftime('%d/%m/%Y')} → {fecha_final.strftime('%d/%m/%Y')}  
+    **Consumo estimado:** {consumo_periodo:.1f} kg  
+    **Inventario actual:** {inventario_actual:.1f} kg  
+    **Compra necesaria:** 🟠 {compra_necesaria:.1f} kg
+    """)
+    st.dataframe(df_pred.loc[mask_pred, ['Fecha', 'Kg_Predichos']].reset_index(drop=True))
 
-    st.dataframe(df_pred.loc[mask, ['Fecha', 'Kg_Predichos']].reset_index(drop=True))
-
-# ================== LÓGICA DE STREAMLIT =====================
-st.title("Dashboard Predicción Café")
-
-# Consulta de inventario inicial de la base
-inventario_reg = obtener_inventario()
-inventario_actual = inventario_reg['cantidad_kg'] if inventario_reg else 40.0
-
-st.sidebar.header("Inventario de la Base de Datos")
-nuevo_inventario = st.sidebar.number_input("Inventario actual (kg):", min_value=0.0, value=inventario_actual, step=1.0)
-if st.sidebar.button("Actualizar inventario en BD"):
+# ================= SIDEBAR: CONTROL DE INVENTARIO =================
+st.sidebar.header("⚙️ Control de Inventario")
+nuevo_inventario = st.sidebar.number_input("Inventario actual (kg):", 0.0, 10000.0, inventario_actual, step=1.0)
+if st.sidebar.button("Actualizar inventario"):
     actualizar_inventario(nuevo_inventario)
-    st.sidebar.success("Inventario actualizado en la base de datos. Refresca la página para ver cambios.")
 
-st.sidebar.write(f"Inventario real en BD: **{nuevo_inventario:.1f} kg**")
-
-# Calcula días de stock según el inventario real de BD y predicción diaria
-sum_kg = 0
-dias_stock = 0
-fecha_quiebre = None
+# Calcular cobertura de stock
+sum_kg, dias_stock, fecha_quiebre = 0, 0, None
 for idx, row in df_pred.iterrows():
     if sum_kg < nuevo_inventario:
-        sum_kg += row['Kg_Predichos']
+        sum_kg += float(row['Kg_Predichos'])
         dias_stock += 1
-        fecha_quiebre = row['Fecha'] 
+        fecha_quiebre = row['Fecha']
     else:
         break
-# ----------- ALERTA bajo inventario ----------
+
 hoy = pd.to_datetime(datetime.date.today())
-prox_prediccion = df_merged[df_merged['fecha'] >= hoy]['kg_predicho'].iloc[0]  # Próximo pedido predicho
+prox_pred = df_merged[df_merged['fecha'] >= hoy]
+prox_prediccion = prox_pred['kg_predicho'].iloc[0] if not prox_pred.empty else 0.0
 
-if nuevo_inventario < prox_prediccion:
-    st.sidebar.error(f"⚠️ Inventario insuficiente: solo {nuevo_inventario:.1f} kg, no cubre el siguiente pedido de {prox_prediccion:.1f} kg.")
+if nuevo_inventario < float(prox_prediccion):
+    st.sidebar.error(f"⚠️ Inventario insuficiente ({nuevo_inventario:.1f} kg). No cubre el siguiente pedido ({prox_prediccion:.1f} kg).")
 else:
-    st.sidebar.success(f"Inventario OK: {nuevo_inventario:.1f} kg. Cubre el siguiente pedido de {prox_prediccion:.1f} kg.")
-    if fecha_quiebre is not None:
-        st.sidebar.info(
-            f"Tienes café para: **{dias_stock} pedidos** y hasta el {fecha_quiebre.strftime('%d/%m/%Y')} según el modelo."
-        )
-    else:
-        st.sidebar.warning("Inventario insuficiente para siquiera un día de predicción.")
-
-    st.sidebar.subheader("Detalle consumo hasta quiebre de inventario")
-    st.sidebar.dataframe(df_pred.loc[:dias_stock-1][['Fecha','Kg_Predichos']])
+    st.sidebar.success(f"Inven. OK: {nuevo_inventario:.1f} kg. Cubre hasta el {fecha_quiebre.strftime('%d/%m/%Y')}")
+    st.sidebar.metric("Días cubiertos", dias_stock, delta=f"Hasta {fecha_quiebre.strftime('%d/%m/%Y')}")
+    st.sidebar.write("Detalle del consumo proyectado:")
+    st.sidebar.dataframe(df_pred.loc[:dias_stock-1, ['Fecha', 'Kg_Predichos']])

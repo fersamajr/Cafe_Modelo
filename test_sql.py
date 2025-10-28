@@ -2,7 +2,7 @@ import mysql.connector
 
 try:
     conn = mysql.connector.connect(
-        host="2.tcp.us-cal-1.ngrok.io",
+        host="0.tcp.us-cal-1.ngrok.io:12240",
         port=13185,
         user="root",
         password="Fp$c0105",

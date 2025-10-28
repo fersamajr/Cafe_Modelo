@@ -5,7 +5,7 @@ try:
         host="2.tcp.us-cal-1.ngrok.io",
         port=13185,
         user="root",
-        password="Fp$c0105",s
+        password="Fp$c0105",
         database="Cafe"   # o el nombre real
     )
     print("¡Conexión exitosa con ngrok!")

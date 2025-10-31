@@ -24,7 +24,7 @@ six==1.17.0
 # Excel y bases de datos
 openpyxl==3.1.5
 mysql-connector-python
-
+sqlalchemy==2.0.19
 # Streamlit y utilidades web
 streamlit
 

@@ -20,73 +20,16 @@ MYSQL_PASS = "Fp$c0105"
 MYSQL_HOST = "localhost"
 MYSQL_DB = "app_a"
 
-ENGINE = create_engine(f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASS}@{MYSQL_HOST}/{MYSQL_DB}")
 
-# ============================================================================
-# ESQUEMA DE TABLAS MYSQL (COMENTARIOS)
-# ============================================================================
-# CREATE TABLE pedidos_cliente (
-#     id INT AUTO_INCREMENT PRIMARY KEY,
-#     cliente_id VARCHAR(100),
-#     producto VARCHAR(50),
-#     cantidad FLOAT,
-#     detalle VARCHAR(255),
-#     fecha DATE
-# );
-
-# CREATE TABLE inventario_cafe (
-#     id INT AUTO_INCREMENT PRIMARY KEY,
-#     cantidad_kg FLOAT,
-#     fecha_actualizacion DATETIME
-# );
-
-# CREATE TABLE control_inventario_cafe (
-#     id INT AUTO_INCREMENT PRIMARY KEY,
-#     cantidad_antes FLOAT,
-#     cantidad_despues FLOAT,
-#     fecha_cambio DATETIME,
-#     usuario VARCHAR(100)
-# );
-
-# CREATE TABLE predicciones_cafe_365_dias (
-#     id INT AUTO_INCREMENT PRIMARY KEY,
-#     Fecha DATE,
-#     Kg_Predichos FLOAT
-# );
-
-# CREATE TABLE usuarios (
-#     id INT AUTO_INCREMENT PRIMARY KEY,
-#     usuario VARCHAR(100),
-#     nombre VARCHAR(100),
-#     contraseña VARCHAR(100),
-#     telefono VARCHAR(30),
-#     rol VARCHAR(30)
-# );
-
-# CREATE TABLE comparacion_prediccion_vs_real (
-#     id INT AUTO_INCREMENT PRIMARY KEY,
-#     cliente_id VARCHAR(100),
-#     fecha_real DATE,
-#     kg_real FLOAT,
-#     fecha_predicha DATE,
-#     kg_predicha FLOAT,
-#     dif_dias INT,
-#     dif_kg FLOAT,
-#     registro DATETIME,
-#     fue_pred_usada BOOL
-# );
-
-# CREATE TABLE log_eliminaciones_pedidos (
-#     id INT AUTO_INCREMENT PRIMARY KEY,
-#     cliente_id VARCHAR(100),
-#     producto VARCHAR(50),
-#     cantidad FLOAT,
-#     detalle VARCHAR(255),
-#     fecha DATE,
-#     usuario VARCHAR(100),
-#     fecha_eliminacion DATETIME
-# );
-
+def get_connection():
+    """Establece una conexión a la base de datos MySQL utilizando SQLAlchemy."""
+    try:
+        ENGINE = create_engine(f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASS}@{MYSQL_HOST}/{MYSQL_DB}")
+        return ENGINE
+    except Exception as e:
+        st.error(f"Error al conectar a la base de datos: {e}")
+        return None
+ENGINE = get_connection()
 # ============================================================================
 # FUNCIONES DE ACCESO A DATOS - PEDIDOS
 # ============================================================================

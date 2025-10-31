@@ -11,20 +11,23 @@ import seaborn as sns
 import numpy as np
 import streamlit as st
 import datetime
+import os
 
 # ============================================================================
 # CONFIGURACIÓN DE CONEXIÓN A MYSQL
 # ============================================================================
-MYSQL_USER = "root"
-MYSQL_PASS = "Fp$c0105"
-MYSQL_HOST = "localhost"
+MYSQL_USER = os.getenv("DB_USER"),
+MYSQL_PASS = os.getenv("DB_PASSWORD")
+MYSQL_HOST = os.getenv("DB_HOST")
 MYSQL_DB = "app_a"
+MYSQL_PORT = int(os.getenv("DB_PORT"))
 
 
 def get_connection():
     """Establece una conexión a la base de datos MySQL utilizando SQLAlchemy."""
     try:
-        ENGINE = create_engine(f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASS}@{MYSQL_HOST}/{MYSQL_DB}")
+        ENGINE = ENGINE = create_engine(f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASS}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}")
+        # Probar la conexión para asegurarnos de que los parámetros son correctos y la base de datos es accesible
         return ENGINE
     except Exception as e:
         st.error(f"Error al conectar a la base de datos: {e}")

@@ -41,10 +41,11 @@ def intentar_cargar_usuarios_sql():
     try:
         import mysql.connector
         conn = mysql.connector.connect(
-            host='localhost',
-            user='tuusuario',
-            password='tucontrasena',
-            database='APP'
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            database="app_a",  # nombre de la DB directo
+            port=int(os.getenv("DB_PORT"))
         )
         query = "SELECT usuario, rol, contrasena FROM Usuarios;"
         df = pd.read_sql(query, conn)

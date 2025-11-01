@@ -107,7 +107,7 @@ if st.session_state["rol"] is None:
                     st.session_state["usuario"] = usuario
                     st.session_state["autenticacion_tipo"] = metodo
                     st.session_state["autenticacion_razon"] = razon
-                    st.rerun()
+                    st.experimental_rerun()
                 else:
                     st.error("Usuario o contraseña incorrectos. Verifica tus datos.")
 

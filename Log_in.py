@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv 
 import mysql.connector
 from mysql.connector import Error   
+
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 # Utilidad para archivar todo en datos_prueba
@@ -48,7 +49,7 @@ def intentar_cargar_usuarios_sql():
             host=os.getenv("DB_HOST"),
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
-            database="app_a",  # nombre de la DB directo
+            database=os.getenv("DB_DATABASE"),
             port=int(os.getenv("DB_PORT"))
         )
         query = "SELECT usuario, rol, contrasena FROM Usuarios;"

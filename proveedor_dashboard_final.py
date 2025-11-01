@@ -16,10 +16,10 @@ import os
 # ============================================================================
 # CONFIGURACIÓN DE CONEXIÓN A MYSQL
 # ============================================================================
-MYSQL_USER = os.getenv("DB_USER"),
+MYSQL_USER = os.getenv("DB_USER")
 MYSQL_PASS = os.getenv("DB_PASSWORD")
 MYSQL_HOST = os.getenv("DB_HOST")
-MYSQL_DB = "app_a"
+MYSQL_DB = os.getenv("DB_DATABASE")
 MYSQL_PORT = int(os.getenv("DB_PORT"))
 
 

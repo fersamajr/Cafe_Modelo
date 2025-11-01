@@ -26,7 +26,7 @@ MYSQL_PORT = int(os.getenv("DB_PORT"))
 def get_connection():
     """Establece una conexión a la base de datos MySQL utilizando SQLAlchemy."""
     try:
-        ENGINE = ENGINE = create_engine(f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASS}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}")
+        ENGINE = create_engine(f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASS}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}")
         # Probar la conexión para asegurarnos de que los parámetros son correctos y la base de datos es accesible
         return ENGINE
     except Exception as e:

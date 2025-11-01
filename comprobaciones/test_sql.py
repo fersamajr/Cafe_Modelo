@@ -1,5 +1,15 @@
 import mysql.connector
 import os
+from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
+load_dotenv()
+import pandas as pd
+
+MYSQL_USER = os.getenv("DB_USER")
+MYSQL_PASS = os.getenv("DB_PASSWORD")
+MYSQL_HOST = os.getenv("DB_HOST")
+MYSQL_DB = os.getenv("DB_DATABASE")
+MYSQL_PORT = int(os.getenv("DB_PORT"))
 
 try:
     conn = mysql.connector.connect(
@@ -25,3 +35,20 @@ try:
 except Exception as e:
     print("Error de conexión:", e)
     print("Revisa tu archivo .env para asegurarte de que las variables de entorno estén configuradas correctamente.")
+
+def get_connection():
+    """Establece una conexión a la base de datos MySQL utilizando SQLAlchemy."""
+    try:
+        ENGINE =create_engine(f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASS}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}")
+        # Probar la conexión para asegurarnos de que los parámetros son correctos y la base de datos es accesible
+        return ENGINE
+    except Exception as e:
+        print(f"Error al conectar a la base de datos: {e}")
+        return None
+ENGINE = get_connection()
+def cargar_todos_pedidos():
+    """Carga todos los pedidos básicos"""
+    query = "SELECT cliente_id, producto, cantidad, detalle, fecha FROM pedidos_cliente"
+    return pd.read_sql(query, ENGINE)
+a = cargar_todos_pedidos()
+print(a)

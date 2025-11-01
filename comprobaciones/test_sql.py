@@ -1,12 +1,14 @@
 import mysql.connector
+import os
+
 
 try:
     conn = mysql.connector.connect(
-        host="0.tcp.us-cal-1.ngrok.io",
-        port=12240,
-        user="root",
-        password="Fp$c0105",
-        database="Cafe"   # o el nombre real
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            database=os.getenv("DB_DATABASE"),
+            port=int(os.getenv("DB_PORT"))
     )
     print("¡Conexión exitosa con ngrok!")
     conn.close()

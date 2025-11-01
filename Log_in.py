@@ -1,7 +1,11 @@
 import streamlit as st
 import pandas as pd
 import os
-
+from dotenv import load_dotenv 
+import mysql.connector
+from mysql.connector import Error   
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path)
 # Utilidad para archivar todo en datos_prueba
 def ruta_datos(filename):
     carpeta = 'datos_prueba'
@@ -134,4 +138,4 @@ else:
         st.session_state["usuario"] = None
         st.session_state["autenticacion_tipo"] = None
         st.session_state["autenticacion_razon"] = None
-        st.rerun()
+        st.experimental_rerun()
